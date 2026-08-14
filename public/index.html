@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markdown previewer!</title>
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.3.0/css/all.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/dracula.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/lib/marked.umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.4.8/purify.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/markdown/markdown.min.js"></script>
+</head>
+
+<body>
+    <header>
+        <a href="/" class="logo">MarkedPreviewer</a>
+        <div class="center">
+            <i id="toggle-theme-btn" class="fa-solid fa-circle-half-stroke" tabindex="0" role="button"></i>
+            <i id="signup-btn" class="fa-solid fa-user-plus" tabindex="0" role="button"></i>
+            <div id="loggeIn-group" class="center">
+                <i id="profile-btn" class="fa-solid fa-user-circle" tabindex="0" role="button"></i>
+                <i id="signout-btn" class="fas fa-sign-out" role="button" tabindex="0"></i>
+            </div>
+        </div>
+    </header>
+
+    <main class="main-container">
+        <section class="edit-container">
+            <div class="space-between">
+                <p class="container-header-text">EDIT: </p>
+                <div class="center">
+                    <button id="clear-btn" title="Clear">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                    <button id="copy-btn" title="Copy">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                    <button id="save-btn" title="Save">
+                        <i class="fas fa-floppy-disk"></i>
+                    </button>
+                    <button id="show-preview-btn" title="Preview">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <textarea id="edit-textarea"></textarea>
+            <div class="space-between">
+                <div class="center">
+                    <p id="mode-status">LocalEdit</p>
+                    <p id="save-status">Saved</p>
+                </div>
+                <p id="count">0/10,000</p>
+            </div>
+        </section>
+
+        <section class="preview-container">
+            <div class="space-between">
+                <p class="container-header-text">PREVIEW: </p>
+                <div class="center">
+                    <button id="download-btn" title="Download">
+                        <i class="fas fa-download"></i>
+                    </button>
+                    <button id="show-edit-btn" title="Edit">
+                        <i class="fas fa-eye-slash"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="CodePreview"></div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 Markdown previewer</p>
+    </footer>
+
+    <!-- JavaScript -->
+    <script src="nanoscript.min.js"></script>
+    <script src="js/plugins/copy.js"></script>
+    <script src="js/theme-toggle.js"></script>
+    <script src="js/helpers.js"></script>
+    <script src="js/main.js"></script>
+    <script src="js/editor-events.js"></script>
+    <script src="js/profile.js"></script>
+    <script src="js/signup.js"></script>
+</body>
+
+</html>
