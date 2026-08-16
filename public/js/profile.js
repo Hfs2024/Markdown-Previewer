@@ -3,39 +3,6 @@ async function showManageLinkModal(save, link) {
     pickerConfig.chosenExpiryTime = "1h";
     pickerConfig.status = "private";
 
-    // Update link
-    const update = async (newStatus = "public", newPassword = "") => {
-        const updateResponse = await NS.fetch({
-            url: `/api/v1/update-link-status/save/${save._id}`,
-            method: "PUT",
-            body: {
-                newStatus,
-                newPassword
-            }
-        });
-
-        if (!updateResponse.success) return Swal.fire(updateResponse.error);
-        Swal.fire("Success", "Link updated!", "success");
-    }
-
-    // Update password
-    const updatePassword = (onSubmit) => {
-        Swal.fire({
-            title: "Enter password: ",
-            input: "password",
-            inputPlaceholder: "Enter password...",
-            preConfirm: result => {
-                if (!result) return Swal.showValidationMessage("Don't forget the password!");
-                if (result.length > 10) return Swal.showValidationMessage("Password cannot exceed 10 chars!");
-            },
-            showCancelButton: true,
-            confirmButtonText: "Submit"
-        }).then(result => {
-            if (!result.isConfirmed) return Swal.fire("Failure", "Operation was cancelled", "info");
-            if (typeof onSubmit === "function") onSubmit(result.value);
-        });
-    }
-
     Swal.fire({
         titleText: `Manage ${save.title}'s Link`,
         html: "<div id='link-manage-container'></div>",
@@ -60,25 +27,17 @@ async function showManageLinkModal(save, link) {
         Swal.fire("Success", "Deleted old link successfully!", "success");
     });
 
-    NS(NS.createEl("button", buttons, { className: "btn-max-width" })).html("Toggle Status").on("click", function () {
-        if (link?.status === "public") {
-            updatePassword(password => {
-                update("private", password);
-            });
-        } else update("public", "");
-    });
-
-    if (link?.status === "private") NS(NS.createEl("button", buttons, { className: "btn-max-width btn-success" })).html("Update Password").on("click", function () {
-        updatePassword(async password => {
-            const passwordUpdate = await NS.fetch({
-                url: `/api/v1/update-link-password/save/${save._id}`,
-                method: "PUT",
-                body: { newPassword: password }
-            });
-
-            if (!passwordUpdate.success) return Swal.fire(passwordUpdate.error);
-            return Swal.fire("Success", "Password updated!", "success");
+    NS(NS.createEl("button", buttons, { className: "btn-max-width" })).html("Toggle Status").on("click", async function () {
+        const updateStatusResponse = await NS.fetch({
+            url: `/api/v1/update-link-status/save/${save._id}`,
+            method: "PUT",
+            body: {
+                newStatus: link?.status === "public" ? "private" : "public"
+            }
         });
+
+        if (!updateStatusResponse.success) return Swal.fire(updateStatusResponse.error);
+        Swal.fire("Success", "Link updated!", "success");
     });
 }
 
@@ -97,11 +56,11 @@ async function showCreateLinkModal(save) {
             <div class='center'>
               <button id='status-private-btn' class='status-btn btn-picker on' data-status='private' data-category='status'>Private</button>
               <button id='status-public-btn' class='status-btn btn-picker' data-status='public' data-category='status'>Public</button>
-            </div><hr>
+            </div>
 
-            <button id='burn-after-read' class='btn-max-width'>Burn after read</button><br><br>
-            <div id='status-password-input-container'>
-               <input placeholder='Enter password...' id='status-password-input' type='text' /><br><br>
+            <div id='burn-after-read-container'>
+               <hr>
+               <button id='burn-after-read' class='btn-max-width'>Burn after read</button><br><br>
             </div>
         `,
 
@@ -139,17 +98,19 @@ async function showCreateLinkModal(save) {
                 variables: ["status"]
             });
 
-            NS("#status-private-btn").on("click", function () {
-                NS("#status-password-input-container").show();
+            NS("#status-public-btn").on("click", function () {
+                NS("#burn-after-read-container").show();
             });
 
-            NS("#status-public-btn").on("click", function () {
-                NS("#status-password-input-container").hide();
+            NS("#status-private-btn").on("click", function () {
+                NS("#burn-after-read-container").hide();
             });
 
             NS("#burn-after-read").on("click", function () {
                 NS("#burn-after-read").toggleClass("on");
             });
+
+            NS("#burn-after-read-container").hide();
         },
         showCancelButton: true,
     }).then(async result => {
@@ -165,8 +126,7 @@ async function showCreateLinkModal(save) {
             body: {
                 expiresAt: pickerConfig.chosenExpiryTime,
                 status: pickerConfig.status,
-                password: pickerConfig.status === "private" ? NS("#status-password-input").getVal()[0] : "",
-                burnAfterRead: NS("#burn-after-read").hasClass("on")
+                burnAfterRead: pickerConfig.status === "public" ? NS("#burn-after-read").hasClass("on") : false
             }
         });
 
@@ -232,25 +192,37 @@ async function showProfile() {
                     showCreateLinkModal(save);
                 });
             else {
+                if (!link.burned) {
+                    NS(NS.createEl("i", saveHeaderButtons, { className: "fas fa-link link-icon", title: "Copy link", tabIndex: "0", role: "button" })).on("click", async function () {
+                        NS.copy({
+                            text: generateLink(save._id),
+                            onSuccess: () => {
+                                Swal.fire("Success", "Copied!", "success");
+                            },
+                            onFailure: () => {
+                                Swal.fire("Error", "Failed to copy. Try again later.", "error");
+                            }
+                        });
+                    });
+                } else {
+                    NS(NS.createEl("i", saveHeaderButtons, { className: "fas fa-arrow-rotate-left link-icon", title: "Restore", tabIndex: "0", role: "button" })).on("click", async function () {
+                        const restoreLinkResponse = await NS.fetch({
+                            url: `/api/v1/restore-link/save/${save._id}`,
+                            method: "POST"
+                        });
+
+                        if (!restoreLinkResponse.success) return Swal.fire(restoreLinkResponse.error);
+                        Swal.fire("Success", "Link restored for another use!", "success");
+                    });
+                }
+
                 NS(NS.createEl("i", saveHeaderButtons, { className: "fas fa-briefcase link-icon", title: "Manage link", tabIndex: "0", role: "button" }))
                     .on("click", async function () {
                         showManageLinkModal(save, link);
                     });
-
-                if (!link.isBurned) NS(NS.createEl("i", saveHeaderButtons, { className: "fas fa-link link-icon", title: "Copy link", tabIndex: "0", role: "button" })).on("click", async function () {
-                    NS.copy({
-                        text: generateLink(save._id),
-                        onSuccess: () => {
-                            Swal.fire("Success", "Copied!", "success");
-                        },
-                        onFailure: () => {
-                            Swal.fire("Error", "Failed to copy. Try again later.", "error");
-                        }
-                    });
-                });
             }
 
-            NS(NS.createEl("i", saveHeaderButtons, { className: "fas fa-eye-dropper link-icon", title: "Manage link", tabIndex: "0", role: "button" }))
+            NS(NS.createEl("i", saveHeaderButtons, { className: "fas fa-eye-dropper link-icon", title: "Pick a color", tabIndex: "0", role: "button" }))
                 .on("click", function () {
                     Swal.fire({
                         title: "Pick a color: ",

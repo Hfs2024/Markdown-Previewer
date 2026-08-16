@@ -23,16 +23,10 @@ const linksSchema = new mongoose.Schema({
     for: { type: mongoose.Schema.Types.ObjectId, ref: "Saves" },
     by: mongoose.Schema.Types.ObjectId,
     status: { type: String, enum: ["private", "public"], default: "private" },
-    password: String,
     expiresAt: Date,
     views: { type: Number, default: 0 },
     burnAfterRead: { type: Boolean, default: false },
-    isBurned: { type: Boolean, default: false },
-    createdAt: {
-        type: Date,
-        default: Date.now,
-        expires: "7d"
-    }
+    burned: { type: Boolean, default: false },
 }, { timestamps: true });
 
 linksSchema.index({ by: 1, for: 1 }, { unique: true });

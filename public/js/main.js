@@ -57,42 +57,7 @@ async function renderEditorContent() {
             url: `/api/v1/get/save-from-link/${id}`
         });
 
-        const validatePassword = () => {
-            Swal.fire({
-                title: "Enter password: ",
-                inputPlaceholder: "Enter password...",
-                input: "text",
-                showCancelButton: true
-            }).then(async result => {
-                if (result.value && result.isConfirmed) {
-                    const passwordResponse = await NS.fetch({
-                        url: `/api/v1/validate-save-password/${id}`,
-                        method: "POST",
-                        body: {
-                            password: result.value
-                        }
-                    });
-
-                    if (!passwordResponse.success) {
-                        if (passwordResponse.invalid_password) return Swal.fire({
-                            title: passwordResponse.error,
-                            showCancelButton: true,
-                            confirmButtonText: "Yes"
-                        }).then(result => {
-                            if (result.isConfirmed) validatePassword();
-                        });
-
-                        return Swal.fire(passwordResponse.error);
-                    }
-
-                    editor.setValue(passwordResponse.content);
-                }
-            });
-        }
-
         if (!data.success) return Swal.fire(data.error);
-        if (data.need_password) return validatePassword();
-
         editor.setValue(data.content);
     } else editor.setValue(draft || defaultString);
     updateCount();

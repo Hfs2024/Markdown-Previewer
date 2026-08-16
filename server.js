@@ -55,7 +55,6 @@ app.get("/", function (req, res) {
 });
 
 // Users
-// Post
 app.post("/api/v1/signup", async function (req, res) {
     try {
         if (req.session.isLoggedIn) return res.status(400).json({ error: "You are already logged in!" });
@@ -168,7 +167,6 @@ app.post("/api/v1/get/user-profile", checkAuth, async (req, res) => {
     }
 });
 
-// Get
 app.get("/api/v1/get/user-status", checkAuth, function (req, res) {
     try {
         return res.status(200).json({ loggedIn: req.session.isLoggedIn });
@@ -178,8 +176,7 @@ app.get("/api/v1/get/user-status", checkAuth, function (req, res) {
     }
 });
 
-// Saves and links
-// Post
+// Saves
 app.post("/api/v1/saves", checkAuth, async (req, res) => {
     try {
         let { content, title } = req.body;
@@ -228,51 +225,43 @@ app.post("/api/v1/saves", checkAuth, async (req, res) => {
     }
 });
 
-// Get
+// Links
 app.get("/api/v1/get/save-from-link/:id", checkValidID, async (req, res) => {
     try {
         const id = req.params.id;
-        const session = await mongoose.startSession();
-        let linkUpate = null;
-
-        try {
-            await session.withTransaction(async () => {
-                linkUpdate = await schemas.Links.findOneAndUpdate(
-                    { for: id, isBurned: false },
-                    [
-                        {
-                            $set: {
-                                isBurned: {
-                                    $cond: {
-                                        if: { $eq: ["$burnAfterRead", true] },
-                                        then: true,
-                                        else: "$isBurned"
-                                    }
-                                }
+        const link = await schemas.Links.findOneAndUpdate(
+            {
+                for: id,
+                burned: false,
+                $or: [
+                    { status: "public" },
+                    { status: "private", by: req.session.userId }
+                ]
+            },
+            [
+                {
+                    $set: {
+                        burned: {
+                            $cond: {
+                                if: { $eq: ["$burnAfterRead", true] },
+                                then: true,
+                                else: "$burned"
                             }
                         }
-                    ],
-                    { new: true, updatePipeline: true, session }
-                )
-                    .populate("for")
-                    .lean();
+                    }
+                }
+            ],
+            { new: true, updatePipeline: true }
+        )
+            .populate("for")
+            .lean();
 
-                if (!linkUpdate) throw new Error("INVALID_LINK");
-                if (linkUpdate?.status === "private") throw new Error("PASSWORD_NEEDED");
-                if (!linkUpdate?.burnAfterRead) return handleLinkView(linkUpdate?._id?.toString());
-            });
-        } catch (txError) {
-            if (txError.message === "INVALID_LINK") return res.status(400).json({ error: "Invalid link!" });
-            if (txError.message === "PASSWORD_NEEDED") return res.status(400).json({ success: true, need_password: true });
-            console.log("Error: " + txError.message);
-            return res.status(400).json({ error: "Someting went wrong. Try again later." });
-        } finally {
-            await session.endSession();
-        }
+        if (!link) return res.status(400).json({ error: "Invalid link!" });
+        handleLinkView(link._id.toString());
 
         return res.status(200).json({
             success: true,
-            content: linkUpdate?.for?.content
+            content: link.for.content
         });
     } catch (e) {
         console.log("Error: " + e.message);
