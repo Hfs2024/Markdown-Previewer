@@ -91,14 +91,15 @@ async function showCreateLinkModal(save) {
             <div class='center'>
               <button class='link-expiry-time-btn btn-picker on' data-time='1h' data-category='link-expiry-time'>1 Hour</button>
               <button class='link-expiry-time-btn btn-picker' data-time='never' data-category='link-expiry-time'>Never</button>
-            </div><br><hr>
+            </div><hr>
 
             <h3>Status: </h3>
             <div class='center'>
               <button id='status-private-btn' class='status-btn btn-picker on' data-status='private' data-category='status'>Private</button>
               <button id='status-public-btn' class='status-btn btn-picker' data-status='public' data-category='status'>Public</button>
-            </div><br>
+            </div><hr>
 
+            <button id='burn-after-read' class='btn-max-width'>Burn after read</button><br><br>
             <div id='status-password-input-container'>
                <input placeholder='Enter password...' id='status-password-input' type='text' /><br><br>
             </div>
@@ -145,6 +146,10 @@ async function showCreateLinkModal(save) {
             NS("#status-public-btn").on("click", function () {
                 NS("#status-password-input-container").hide();
             });
+
+            NS("#burn-after-read").on("click", function () {
+                NS("#burn-after-read").toggleClass("on");
+            });
         },
         showCancelButton: true,
     }).then(async result => {
@@ -160,7 +165,8 @@ async function showCreateLinkModal(save) {
             body: {
                 expiresAt: pickerConfig.chosenExpiryTime,
                 status: pickerConfig.status,
-                password: pickerConfig.status === "private" ? NS("#status-password-input").getVal() : ""
+                password: pickerConfig.status === "private" ? NS("#status-password-input").getVal()[0] : "",
+                burnAfterRead: NS("#burn-after-read").hasClass("on")
             }
         });
 
@@ -226,7 +232,12 @@ async function showProfile() {
                     showCreateLinkModal(save);
                 });
             else {
-                NS(NS.createEl("i", saveHeaderButtons, { className: "fas fa-link link-icon", title: "Copy link", tabIndex: "0", role: "button" })).on("click", async function () {
+                NS(NS.createEl("i", saveHeaderButtons, { className: "fas fa-briefcase link-icon", title: "Manage link", tabIndex: "0", role: "button" }))
+                    .on("click", async function () {
+                        showManageLinkModal(save, link);
+                    });
+
+                if (!link.isBurned) NS(NS.createEl("i", saveHeaderButtons, { className: "fas fa-link link-icon", title: "Copy link", tabIndex: "0", role: "button" })).on("click", async function () {
                     NS.copy({
                         text: generateLink(save._id),
                         onSuccess: () => {
@@ -237,11 +248,6 @@ async function showProfile() {
                         }
                     });
                 });
-
-                NS(NS.createEl("i", saveHeaderButtons, { className: "fas fa-briefcase link-icon", title: "Manage link" }))
-                    .on("click", async function () {
-                        showManageLinkModal(save, link);
-                    });
             }
 
             NS(NS.createEl("i", saveHeaderButtons, { className: "fas fa-eye-dropper link-icon", title: "Manage link", tabIndex: "0", role: "button" }))
@@ -370,5 +376,7 @@ async function showProfile() {
         renderSaves();
     });
 
+    // Init
     renderSaves();
+    runAccessibility();
 }

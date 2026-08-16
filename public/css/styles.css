@@ -34,38 +34,6 @@ body.dark {
     background-color: black;
 }
 
-/* Preview styles */
-pre {
-    background-color: #eee;
-    overflow: auto;
-    border-radius: 20px;
-    padding: 15px;
-}
-
-blockquote {
-    margin: 20px 0;
-    padding: 10px;
-    background-color: var(--light);
-    border-left: 5px solid var(--blue);
-    border-radius: 0 8px 8px 0;
-    font-family: 'Georgia', serif;
-    font-size: 20px;
-    font-style: italic;
-    color: #334155;
-}
-
-img, video {
-    width: 100%;
-    height: auto;
-    border-radius: 10px;
-}
-
-th,
-td {
-    border-bottom: 2px solid #eee;
-    padding: 10px;
-}
-
 /* Basic */
 header,
 footer {
@@ -90,7 +58,8 @@ header i:hover {
     cursor: pointer;
 }
 
-input {
+input,
+.password-container {
     width: 100%;
     font-weight: bold;
     padding: 10px;
@@ -98,6 +67,30 @@ input {
     border: 2px solid rgba(24, 67, 186, 0.642);
     box-shadow: 0 2px 5px rgba(238, 0, 119, 0.1);
     border-radius: 10px;
+}
+
+.password-container {
+    padding: 0;
+}
+
+.password-eye {
+    margin-right: 7px;
+    cursor: pointer;
+    transition: color 0.3s ease;
+}
+
+.password-eye:hover {
+    color: #aaa;
+}
+
+#password {
+    background-color: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+#password:focus {
+    outline: none !important;
 }
 
 .logo {
@@ -141,24 +134,6 @@ input {
     font-weight: bold;
     font-size: 23px;
     text-align: left;
-}
-
-.center,
-.space-between,
-.center-overflow {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 10px;
-}
-
-.center-overflow {
-    overflow-x: auto;
-    justify-content: flex-start;
-}
-
-.space-between {
-    justify-content: space-between;
 }
 
 /* CodeMirror Sizing */
@@ -238,7 +213,8 @@ button:hover {
     font-weight: bold;
 }
 
-#save-status, #mode-status {
+#save-status,
+#mode-status {
     color: var(--purple);
 }
 
@@ -260,21 +236,45 @@ button:hover {
     font-weight: bold;
 }
 
-/* Swal and link styles */
-.swal-toggle, .link-icon {
+/* Others */
+.swal-toggle,
+.link-icon {
     color: var(--blue);
     text-decoration: underline;
     cursor: pointer;
     transition: color 0.3s ease;
 }
 
-.swal-toggle:hover, .link-icon:hover {
+.swal-toggle:hover,
+.link-icon:hover {
     color: blue;
 }
 
 .link-icon {
     font-size: 20px;
     text-decoration: none;
+}
+
+.center,
+.space-between,
+.center-overflow {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+}
+
+.center-overflow {
+    overflow-x: auto;
+    justify-content: flex-start;
+}
+
+.space-between {
+    justify-content: space-between;
+}
+
+hr {
+    margin: 20px 0;
 }
 
 /* Media */

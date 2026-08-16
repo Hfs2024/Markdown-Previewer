@@ -25,7 +25,14 @@ const linksSchema = new mongoose.Schema({
     status: { type: String, enum: ["private", "public"], default: "private" },
     password: String,
     expiresAt: Date,
-    views: { type: Number, default: 0 }
+    views: { type: Number, default: 0 },
+    burnAfterRead: { type: Boolean, default: false },
+    isBurned: { type: Boolean, default: false },
+    createdAt: {
+        type: Date,
+        default: Date.now,
+        expires: "7d"
+    }
 }, { timestamps: true });
 
 linksSchema.index({ by: 1, for: 1 }, { unique: true });

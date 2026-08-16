@@ -232,20 +232,47 @@ app.post("/api/v1/saves", checkAuth, async (req, res) => {
 app.get("/api/v1/get/save-from-link/:id", checkValidID, async (req, res) => {
     try {
         const id = req.params.id;
-        const link = await schemas.Links.findOne({
-            for: id
-        }).populate("for").lean();
+        const session = await mongoose.startSession();
+        let linkUpate = null;
 
-        // Handle link views
-        handleLinkView(link._id.toString());
+        try {
+            await session.withTransaction(async () => {
+                linkUpdate = await schemas.Links.findOneAndUpdate(
+                    { for: id, isBurned: false },
+                    [
+                        {
+                            $set: {
+                                isBurned: {
+                                    $cond: {
+                                        if: { $eq: ["$burnAfterRead", true] },
+                                        then: true,
+                                        else: "$isBurned"
+                                    }
+                                }
+                            }
+                        }
+                    ],
+                    { new: true, updatePipeline: true, session }
+                )
+                    .populate("for")
+                    .lean();
 
-        // Do you have permissions to see this doc?
-        if (!link) return res.status(400).json({ error: "Invalid link!" });
-        if (link.status === "private") return res.status(400).json({ success: true, need_password: true }); // Send a success singal, but warns that a password must be entered
+                if (!linkUpdate) throw new Error("INVALID_LINK");
+                if (linkUpdate?.status === "private") throw new Error("PASSWORD_NEEDED");
+                if (!linkUpdate?.burnAfterRead) return handleLinkView(linkUpdate?._id?.toString());
+            });
+        } catch (txError) {
+            if (txError.message === "INVALID_LINK") return res.status(400).json({ error: "Invalid link!" });
+            if (txError.message === "PASSWORD_NEEDED") return res.status(400).json({ success: true, need_password: true });
+            console.log("Error: " + txError.message);
+            return res.status(400).json({ error: "Someting went wrong. Try again later." });
+        } finally {
+            await session.endSession();
+        }
 
         return res.status(200).json({
             success: true,
-            content: link.for.content
+            content: linkUpdate?.for?.content
         });
     } catch (e) {
         console.log("Error: " + e.message);

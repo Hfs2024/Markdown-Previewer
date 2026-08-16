@@ -1,10 +1,23 @@
 // Accessibility
-NS("[role='button']").each(btn => {
-    btn = NS(btn);
-    btn.on("keydown", function (e) {
-        if (e.key === "Enter") btn.click();
+function runAccessibility() {
+    NS("[role='button']").each(btn => {
+        btn = NS(btn);
+        btn.on("keydown", function (e) {
+            if (e.key === "Enter") btn.click();
+        });
     });
-});
+}
+
+// Password eye icon
+function setUpEyeIcon() {
+    NS(".password-eye").on("click", function () {
+        const type = NS("#password").attr("type");
+        const newType = type === "text" ? "password" : "text";
+        const isText = newType === "text";
+        NS("#password").attr("type", newType);
+        NS(".password-eye").replaceClass(`fa-${isText ? "eye" : "eye-slash"}`, `fa-${isText ? "eye-slash" : "eye"}`);
+    });
+}
 
 // Picker config
 const pickerConfig = {
@@ -17,7 +30,14 @@ const pickerConfig = {
 
 // Clean HTML
 function cleanHTML(html) {
-    return DOMPurify.sanitize(marked.parse(html));
+    return DOMPurify.sanitize(marked.parse(html), {
+        ALLOWED_TAGS: [
+            "pre", "code", "b", "table", "tr", "td", "th", "thead", "tfoot", "tbody",
+            "b", "i", "br", "span", "em", "strong", "u", "s", "sub", "sup", "small",
+            "p", "div", "h1", "h2", "h3", "h4", "h5", "h6", "hr", "ul", "ol", "li",
+            "blockquote", "cite", "q"
+        ]
+    });
 }
 
 // Set mode
@@ -79,3 +99,6 @@ function capitalizeFirstLetter(string) {
 function generateLink(id) {
     return `http://localhost:3000/?id=${id}`;
 }
+
+// Init
+runAccessibility();

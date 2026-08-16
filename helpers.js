@@ -8,6 +8,7 @@ let flushTimer = null;
 
 async function handleLinkView(linkId) {
     await redis.hIncrBy('pending_link_views', linkId, 1);
+    const currentViewsObject = await redis.hGetAll("pending_link_views");
 
     if (!flushTimer) {
         flushTimer = setTimeout(async () => {

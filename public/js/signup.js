@@ -5,7 +5,10 @@ const signOutBtn = NS("#signout-btn");
 const loginForm = `
             <h2>Login</h2>
             <input type="username" id="username" placeholder="Username"><br><br>
-            <input type="password" id="password" placeholder="Password"><br><br>
+            <div class='password-container center'>
+               <input type="password" class="password-input" id="password" placeholder="Password">
+               <i class='fas fa-eye password-eye' role='button' tabindex='0'></i>
+            </div><br>
             <div class="swal-toggle-text">
                 Need an account? <span class="swal-toggle" onclick="showSignUpModal()">Sign up</span>
             </div>
@@ -13,7 +16,10 @@ const loginForm = `
 const signupForm = `
             <h2>Sign Up</h2>
             <input type="text" id="username" placeholder="Username"><br><br>
-            <input type="password" class="password-input" id="password" placeholder="Password"><br><br>   
+            <div class='password-container center'>
+               <input type="password" class="password-input" id="password" placeholder="Password">
+               <i class='fas fa-eye password-eye' role='button' tabindex='0'></i>
+            </div><br>
             <div class="swal-toggle-text">
                 Already have an account? <span class="swal-toggle" onclick="showLoginModal()">Log in</span>
             </div>
@@ -66,6 +72,9 @@ function showModal({
         checkUserStatus();
         if (typeof onSuccess === "function") onSuccess(data);
     });
+
+    setUpEyeIcon();
+    runAccessibility();
 }
 
 function showLoginModal() {

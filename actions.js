@@ -102,11 +102,11 @@ router.delete("/api/v1/delete-link/save/:id", checkAuth, checkValidID, async (re
 router.post("/api/v1/create-link/save/:id", checkAuth, checkValidID, async (req, res) => {
     try {
         const id = req.params.id;
-        let { expiresAt, status, password } = req.body;
+        let { expiresAt, status, password, burnAfterRead } = req.body;
         if (typeof password !== "string") return res.status(400).json({ error: "Password must be a type of string!" });
         status = status === "public" ? "public" : "private";
         const isPrivate = status === "private";
-        const payload = { for: id, by: req.session.userId, status: status };
+        const payload = { for: id, by: req.session.userId, status, burnAfterRead };
 
         if (isPrivate) {
             if (!password) return res.status(400).json({ error: "You didn't enter a password!" });
@@ -204,29 +204,60 @@ const validatePasswordRateLimiter = rateLimit({
     legacyHeaders: false
 });
 
-router.post("/api/v1/validate-save-password/:id", validatePasswordRateLimiter, checkAuth, checkValidID, async (req, res) => {
+router.post("/api/v1/validate-save-password/:id", validatePasswordRateLimiter, checkValidID, async (req, res) => {
     try {
         const id = req.params.id;
         const { password } = req.body;
         if (typeof password !== "string") return res.status(400).json({ error: "Password must be a type of string!" });
         if (!password) return res.status(400).json({ error: "You didn't enter a password!" });
+        const session = await mongoose.startSession();
+        let link = null;
 
-        // Find link
-        const link = await schemas.Links.findOne({
-            for: id,
-            status: "private"
-        }).populate("for").lean();
+        try {
+            await session.withTransaction(async () => {
+                const linkUpdate = await schemas.Links.updateOne(
+                    { for: id, isBurned: false },
+                    [
+                        {
+                            $set: {
+                                isBurned: {
+                                    $cond: {
+                                        if: { $eq: ["$burnAfterRead", true] },
+                                        then: true,
+                                        else: "$isBurned"
+                                    }
+                                }
+                            }
+                        }
+                    ],
+                    { updatePipeline: true, session }
+                );
 
-        // Check password match
-        const isMatch = await bcrypt.compare(password, link.password);
-        if (!isMatch) return res.status(400).json({ error: "Invalid password. Do you want to try again?", invalid_password: true });
+                if (linkUpdate.matchedCount === 0) throw new Error("LINK_NOT_FOUND");
+
+                link = await schemas.Links.findOne({ for: id, status: "private", isBurned: false })
+                    .populate("for")
+                    .session(session)
+                    .lean();
+
+                const isMatch = await bcrypt.compare(password, link?.password);
+                if (!isMatch) throw new Error("INVALID_PASSWORD");
+            });
+        } catch (txError) {
+            if (txError.message === "LINK_NOT_FOUND") return res.status(400).json({ error: "Link not found!" });
+            if (txError.message === "INVALID_PASSWORD") return res.status(400).json({ error: "Invalid password. Do you want to try again?", invalid_password: true });
+            console.log("Error: " + txError.message);
+            return res.status(400).json({ error: "Something went wrong. Try again later." });
+        } finally {
+            await session.endSession();
+        }
 
         return res.status(200).json({ success: true, content: link.for.content });
     } catch (e) {
-        console.log("Error: " + e.message);
-        return res.status(400).json({ error: "Server error" });
+        console.error("Error: " + e.message);
+        return res.status(500).json({ error: "Server error" });
     }
-})
+});
 
 module.exports = {
     router
