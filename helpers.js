@@ -12,11 +12,7 @@ async function handleLinkView(linkId) {
     if (!flushTimer) {
         flushTimer = setTimeout(async () => {
             flushTimer = null;
-            const tx = redis.multi();
-            tx.hGetAll('pending_link_views');
-            tx.del('pending_link_views');
-            const [viewsData, delResult] = await tx.exec();
-
+            const viewsData = await redis.hGetAll('pending_link_views');
             if (!viewsData || Object.keys(viewsData).length === 0) return;
             const operations = Object.keys(viewsData).map(key => {
                 return {
@@ -30,7 +26,9 @@ async function handleLinkView(linkId) {
                     }
                 }
             });
-            await schemas.Links.bulkWrite(operations, { ordered: false });
+
+            const bulkWrite = await schemas.Links.bulkWrite(operations, { ordered: false });
+            if (bulkWrite.acknowledged) await redis.del('pending_link_views');
         }, MAX_SEC * 1000);
     }
 }
