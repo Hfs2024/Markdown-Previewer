@@ -14,11 +14,11 @@ async function showManageLinkModal(save, link) {
     NS(NS.createEl("p", linkCard, { className: "link-expiry" })).html(`<b>Expires:</b> ${save.expiresAt ? new Date(save.expiresAt).toDateString() : "Never"}`);
     NS(NS.createEl("p", linkCard, { className: "link-status" })).html(`<b>Created At:</b> ${new Date(link.createdAt).toDateString()}`);
     NS(NS.createEl("p", linkCard, { className: "link-status" })).html(`<b>Status:</b> ${capitalizeFirstLetter(link?.status)}`);
-    NS(NS.createEl("p", linkCard, { className: "link-status" })).html(`<b>Views:</b> ${link.views}`);
-    NS(NS.createEl("p", linkCard, { className: "link-status" })).html(`<b>Burns after read:</b> ${link.burnAfterRead ? "Yes" : "No"}`);
+    if (link.burnAfterRead) NS(NS.createEl("p", linkCard, { className: "link-status" })).html(`<b>Burns after read:</b> ${link.burnAfterRead ? "Yes" : "No"}`);
+    else NS(NS.createEl("p", linkCard, { className: "link-status" })).html(`<b>Views:</b> ${link.views}`);
     const buttons = NS(NS.createEl("div", container, { className: "center-overflow" }));
 
-    NS(NS.createEl("button", buttons, { className: "btn-max-width btn-danger" })).html("Delete Link").on("click", async function () {
+    NS(NS.createEl("button", buttons, { className: "btn-max-width btn-danger" })).setText("Delete Link").on("click", async function () {
         const deleteResponse = await NS.fetch({
             url: `/api/v1/delete-link/save/${save._id}`,
             method: "DELETE"
@@ -28,7 +28,7 @@ async function showManageLinkModal(save, link) {
         Swal.fire("Success", "Deleted old link successfully!", "success");
     });
 
-    NS(NS.createEl("button", buttons, { className: "btn-max-width" })).html("Toggle Status").on("click", async function () {
+    NS(NS.createEl("button", buttons, { className: "btn-max-width" })).setText("Toggle Status").on("click", async function () {
         const updateStatusResponse = await NS.fetch({
             url: `/api/v1/update-link-status/save/${save._id}`,
             method: "PUT",
@@ -39,6 +39,16 @@ async function showManageLinkModal(save, link) {
 
         if (!updateStatusResponse.success) return Swal.fire(updateStatusResponse.error);
         Swal.fire("Success", "Link updated!", "success");
+    });
+
+    if (link.burned) NS(NS.createEl("button", buttons, { className: "btn-max-width", tabIndex: "0", role: "button" })).setText("Restore").on("click", async function () {
+        const restoreLinkResponse = await NS.fetch({
+            url: `/api/v1/restore-link/save/${save._id}`,
+            method: "POST"
+        });
+
+        if (!restoreLinkResponse.success) return Swal.fire(restoreLinkResponse.error);
+        Swal.fire("Success", "Link restored for another use!", "success");
     });
 }
 
@@ -193,30 +203,17 @@ async function showProfile() {
                     showCreateLinkModal(save);
                 });
             else {
-                if (!link.burned) {
-                    NS(NS.createEl("i", saveHeaderButtons, { className: "fas fa-link link-icon", title: "Copy link", tabIndex: "0", role: "button" })).on("click", async function () {
-                        NS.copy({
-                            text: generateLink(save._id),
-                            onSuccess: () => {
-                                Swal.fire("Success", "Copied!", "success");
-                            },
-                            onFailure: () => {
-                                Swal.fire("Error", "Failed to copy. Try again later.", "error");
-                            }
-                        });
+                if (!link.burned) NS(NS.createEl("i", saveHeaderButtons, { className: "fas fa-link link-icon", title: "Copy link", tabIndex: "0", role: "button" })).on("click", async function () {
+                    NS.copy({
+                        text: generateLink(save._id),
+                        onSuccess: () => {
+                            Swal.fire("Success", "Copied!", "success");
+                        },
+                        onFailure: () => {
+                            Swal.fire("Error", "Failed to copy. Try again later.", "error");
+                        }
                     });
-                } else {
-                    NS(NS.createEl("i", saveHeaderButtons, { className: "fas fa-arrow-rotate-left link-icon", title: "Restore", tabIndex: "0", role: "button" })).on("click", async function () {
-                        const restoreLinkResponse = await NS.fetch({
-                            url: `/api/v1/restore-link/save/${save._id}`,
-                            method: "POST"
-                        });
-
-                        if (!restoreLinkResponse.success) return Swal.fire(restoreLinkResponse.error);
-                        Swal.fire("Success", "Link restored for another use!", "success");
-                    });
-                }
-
+                });
                 NS(NS.createEl("i", saveHeaderButtons, { className: "fas fa-briefcase link-icon", title: "Manage link", tabIndex: "0", role: "button" }))
                     .on("click", async function () {
                         showManageLinkModal(save, link);

@@ -252,7 +252,7 @@ app.get("/api/v1/get/save-from-link/:id", checkValidID, async (req, res) => {
             .lean();
 
         if (!link) return res.status(400).json({ error: "Invalid link!" });
-        handleLinkView(link._id.toString());
+        if (!link.burned) handleLinkView(link._id.toString());
 
         return res.status(200).json({
             success: true,

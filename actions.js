@@ -30,7 +30,7 @@ router.delete("/api/v1/delete/save/:id", checkAuth, checkValidID, async (req, re
 
         return res.status(200).json({ success: true });
     } catch (e) {
-        if (["USER_UPDATE_FAILED", "SAVE_DELETE_FAILED"].includes(txError.message)) return res.status(400).json({ error: "Something went wrong." });
+        if (["USER_UPDATE_FAILED", "SAVE_DELETE_FAILED"].includes(txError.message)) return res.status(400).json({ error: "Save not found." });
         console.log("Error: " + e.message);
         return res.status(500).json({ error: "Failed to delete this save. Try again later." });
     } finally {
@@ -64,12 +64,14 @@ router.put("/api/v1/update/save/:id", checkAuth, checkValidID, async (req, res) 
         // Fields
         if (content) {
             content = String(content).trim();
+            if (!content) return res.status(400).json({ error: "Content not found!" });
             if (content.length > 10000) return res.status(400).json({ error: "Content cannot exceed 10,000 chars!" });
             updateObject.content = content;
         }
 
         if (title) {
             title = String(title).trim();
+            if (!title) return res.status(400).json({ error: "Title not found!" });
             if (title.length > 10) return res.status(400).json({ error: "Title cannot exceed 10 chars!" });
             updateObject.title = title;
         }
