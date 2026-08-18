@@ -8,20 +8,29 @@ let flushTimer = null;
 
 async function handleLinkView(linkId) {
     await redis.hIncrBy('pending_link_views', linkId, 1);
-    const currentViewsObject = await redis.hGetAll("pending_link_views");
 
     if (!flushTimer) {
         flushTimer = setTimeout(async () => {
             flushTimer = null;
-            Object.keys(currentViewsObject).forEach(async id => {
-                await schemas.Links.updateOne({
-                    _id: id
-                }, {
-                    $inc: {
-                        views: await redis.hGet("pending_link_views", id)
+            const tx = redis.multi();
+            tx.hGetAll('pending_link_views');
+            tx.del('pending_link_views');
+            const [viewsData, delResult] = await tx.exec();
+
+            if (!viewsData || Object.keys(viewsData).length === 0) return;
+            const operations = Object.keys(viewsData).map(key => {
+                return {
+                    updateOne: {
+                        filter: { _id: new mongoose.Types.ObjectId(key) },
+                        update: {
+                            $inc: {
+                                views: viewsData[key]
+                            }
+                        }
                     }
-                });
+                }
             });
+            await schemas.Links.bulkWrite(operations, { ordered: false });
         }, MAX_SEC * 1000);
     }
 }

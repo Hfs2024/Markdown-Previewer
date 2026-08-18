@@ -15,6 +15,7 @@ async function showManageLinkModal(save, link) {
     NS(NS.createEl("p", linkCard, { className: "link-status" })).html(`<b>Created At:</b> ${new Date(link.createdAt).toDateString()}`);
     NS(NS.createEl("p", linkCard, { className: "link-status" })).html(`<b>Status:</b> ${capitalizeFirstLetter(link?.status)}`);
     NS(NS.createEl("p", linkCard, { className: "link-status" })).html(`<b>Views:</b> ${link.views}`);
+    NS(NS.createEl("p", linkCard, { className: "link-status" })).html(`<b>Burns after read:</b> ${link.burnAfterRead ? "Yes" : "No"}`);
     const buttons = NS(NS.createEl("div", container, { className: "center-overflow" }));
 
     NS(NS.createEl("button", buttons, { className: "btn-max-width btn-danger" })).html("Delete Link").on("click", async function () {

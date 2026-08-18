@@ -178,6 +178,8 @@ app.get("/api/v1/get/user-status", checkAuth, function (req, res) {
 
 // Saves
 app.post("/api/v1/saves", checkAuth, async (req, res) => {
+    const session = await mongoose.startSession();
+
     try {
         let { content, title } = req.body;
         content = String(content).trim();
@@ -185,43 +187,36 @@ app.post("/api/v1/saves", checkAuth, async (req, res) => {
         if (!content || !title) return res.status(400).json({ error: "Invalid payload" });
         if (content.length > 10000) res.status(400).json({ error: "Content cannot exceed 10,000 chars!" });
         if (title.length > 10) return res.status(400).json({ error: "Title cannot exceed 10 chars!" });
-        const session = await mongoose.startSession();
-
-        try {
-            await session.withTransaction(async () => {
-                // Insert save
-                const newSave = new schemas.Saves({
-                    content: content,
-                    title: title,
-                    by: req.session.userId
-                });
-
-                await newSave.save({ session });
-
-                // Update user
-                const result = await schemas.Users.updateOne({
-                    _id: req.session.userId,
-                    savesCount: { $lt: 50 }
-                }, {
-                    $inc: {
-                        savesCount: 1
-                    }
-                }, { session });
-
-                if (result.matchedCount === 0) throw new Error("USER_UPDATE_FAILED");
+        await session.withTransaction(async () => {
+            // Insert save
+            const newSave = new schemas.Saves({
+                content: content,
+                title: title,
+                by: req.session.userId
             });
-        } catch (txError) {
-            if (txError.message === "USER_UPDATE_FAILED") return res.status(400).json({ error: "You have reached your limit of 50 saves. Delete some old saves to make more space." });
-            console.log("Error: " + txError);
-            return res.status(400).json({ error: "Something went wrong. Try again later." });
-        } finally {
-            await session.endSession();
-        }
+
+            await newSave.save({ session });
+
+            // Update user
+            const result = await schemas.Users.updateOne({
+                _id: req.session.userId,
+                savesCount: { $lt: 50 }
+            }, {
+                $inc: {
+                    savesCount: 1
+                }
+            }, { session });
+
+            if (result.matchedCount === 0) throw new Error("USER_UPDATE_FAILED");
+        });
 
         return res.status(200).json({ success: true });
     } catch (e) {
+        if (txError.message === "USER_UPDATE_FAILED") return res.status(400).json({ error: "You have reached your limit of 50 saves. Delete some old saves to make more space." });
         console.log("Error: " + e.message);
         return res.status(500).json({ error: "Server error" });
+    } finally {
+        await session.endSession();
     }
 });
 

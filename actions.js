@@ -8,37 +8,33 @@ const router = express.Router();
 
 // Delete save
 router.delete("/api/v1/delete/save/:id", checkAuth, checkValidID, async (req, res) => {
+    const session = await mongoose.startSession();
+
     try {
-        const session = await mongoose.startSession();
-        try {
-            await session.withTransaction(async () => {
-                // Save
-                const saveResult = await schemas.Saves.deleteOne({
-                    _id: req.params.id,
-                    by: req.session.userId
-                }, { session });
-                if (saveResult.deletedCount === 0) throw new Error("SAVE_DELETE_FAILED");
+        await session.withTransaction(async () => {
+            // Save
+            const saveResult = await schemas.Saves.deleteOne({
+                _id: req.params.id,
+                by: req.session.userId
+            }, { session });
+            if (saveResult.deletedCount === 0) throw new Error("SAVE_DELETE_FAILED");
 
-                // User
-                const userResult = await schemas.Users.updateOne({ _id: req.session.userId, savesCount: { $gt: 0 } }, {
-                    $inc: { savesCount: -1 }
-                }, { session });
-                if (userResult.matchedCount === 0) throw new Error("USER_UPDATE_FAILED");
+            // User
+            const userResult = await schemas.Users.updateOne({ _id: req.session.userId, savesCount: { $gt: 0 } }, {
+                $inc: { savesCount: -1 }
+            }, { session });
+            if (userResult.matchedCount === 0) throw new Error("USER_UPDATE_FAILED");
 
-                await schemas.Links.deleteOne({ for: req.params.id }, { session });
-            });
-        } catch (txError) {
-            if (["USER_UPDATE_FAILED", "SAVE_DELETE_FAILED"].includes(txError.message)) return res.status(400).json({ error: "Something went wrong." });
-            console.log("Error: " + txError.message);
-            return res.status(500).json({ error: "Something went wrong." });
-        } finally {
-            await session.endSession();
-        }
+            await schemas.Links.deleteOne({ for: req.params.id }, { session });
+        });
 
         return res.status(200).json({ success: true });
     } catch (e) {
+        if (["USER_UPDATE_FAILED", "SAVE_DELETE_FAILED"].includes(txError.message)) return res.status(400).json({ error: "Something went wrong." });
         console.log("Error: " + e.message);
         return res.status(500).json({ error: "Failed to delete this save. Try again later." });
+    } finally {
+        await session.endSession();
     }
 });
 
