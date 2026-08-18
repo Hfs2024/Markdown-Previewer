@@ -123,6 +123,8 @@ router.post("/api/v1/create-link/save/:id", checkAuth, checkValidID, async (req,
     try {
         const id = req.params.id;
         let { expiresAt, status, burnAfterRead } = req.body;
+        const save = await schemas.Saves.findOne({ _id: id });
+        if (!save) return res.status(400).json({ error: "Save not found!" });
         status = status === "private" ? "private" : "public";
         const payload = { for: id, by: req.session.userId, status, burnAfterRead: status === "private" ? false : burnAfterRead };
 

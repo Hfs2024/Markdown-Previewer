@@ -5,30 +5,27 @@ const { redis } = require("./setup-redis.js");
 // Handle link views
 const MAX_SEC = 10;
 let flushTimer = null;
-
 async function handleLinkView(linkId) {
     await redis.hIncrBy('pending_link_views', linkId, 1);
 
     if (!flushTimer) {
         flushTimer = setTimeout(async () => {
             flushTimer = null;
-            const viewsData = await redis.hGetAll('pending_link_views');
+            const snapshotKey = `processing_views:${crypto.randomUUID()}`;
+            const moved = await redis.renameNX('pending_link_views', snapshotKey).catch(() => null);
+            if (!moved || moved === 0) return; 
+            await redis.expire(snapshotKey, 300);
+            const viewsData = await redis.hGetAll(snapshotKey);
             if (!viewsData || Object.keys(viewsData).length === 0) return;
-            const operations = Object.keys(viewsData).map(key => {
-                return {
-                    updateOne: {
-                        filter: { _id: new mongoose.Types.ObjectId(key) },
-                        update: {
-                            $inc: {
-                                views: viewsData[key]
-                            }
-                        }
-                    }
+            const operations = Object.keys(viewsData).map(key => ({
+                updateOne: {
+                    filter: { _id: new mongoose.Types.ObjectId(key) },
+                    update: { $inc: { views: viewsData[key] } }
                 }
-            });
+            }));
 
             const bulkWrite = await schemas.Links.bulkWrite(operations, { ordered: false });
-            if (bulkWrite.acknowledged) await redis.del('pending_link_views');
+            if (bulkWrite.acknowledged) await redis.del(snapshotKey);
         }, MAX_SEC * 1000);
     }
 }

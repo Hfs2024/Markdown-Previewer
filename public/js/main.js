@@ -67,7 +67,7 @@ async function renderEditorContent() {
 showPreviewBtn.on("click", function () {
     editContainer.css({ display: "none" });
     previewContainer.css({ display: "flex" });
-});
+}).click(-2);
 
 showEditBtn.on("click", function () {
     editContainer.css({ display: "flex" });
